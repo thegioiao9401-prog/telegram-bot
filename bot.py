@@ -104,7 +104,6 @@ app.add_handler(CommandHandler("search", search_cmd))
 app.add_handler(CommandHandler("delete", delete_cmd))
 
 print("🔥 Bot PRO đang chạy...")
-print("🔥 Bot PRO đang chạy...")
 
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
