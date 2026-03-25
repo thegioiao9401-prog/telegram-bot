@@ -91,7 +91,10 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"🗑️ Đã xoá ID {delete_id}")
 
-app = ApplicationBuilder().token("8651273302:AAEU_uh0nJzY4YqhKcF9P-aHGTEr5GKdcuA").build()
+import os
+
+TOKEN = os.getenv("8651273302:AAEU_uh0nJzY4YqhKcF9P-aHGTEr5GKdcuA")
+app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("save", save_cmd))
