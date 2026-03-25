@@ -93,7 +93,7 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 import os
 
-TOKEN = os.getenv("8651273302:AAEU_uh0nJzY4YqhKcF9P-aHGTEr5GKdcuA")
+TOKEN = os.getenv("BOT_TOKEN")
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
