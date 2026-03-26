@@ -1,11 +1,17 @@
-print("HELLO FROM GITHUB")
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from flask import Flask, request
 import json
 import os
+import asyncio
 
+TOKEN = os.getenv("BOT_TOKEN")
 DATA_FILE = "data.json"
 
+app = Flask(__name__)
+bot_app = ApplicationBuilder().token(TOKEN).build()
+
+# ===== DATA =====
 def load_data():
     if not os.path.exists(DATA_FILE):
         return []
@@ -16,11 +22,10 @@ def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-# /start
+# ===== COMMANDS =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔥 Bot lưu code PRO đã sẵn sàng!")
+    await update.message.reply_text("🔥 Bot webhook PRO đã sẵn sàng!")
 
-# /save python print("hi")
 async def save_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
         await update.message.reply_text("Cách dùng: /save python code...")
@@ -40,9 +45,8 @@ async def save_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     save_data(data)
 
-    await update.message.reply_text(f"✅ Đã lưu với ID {new_id}")
+    await update.message.reply_text(f"✅ Đã lưu ID {new_id}")
 
-# /list python
 async def list_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = load_data()
 
@@ -60,7 +64,6 @@ async def list_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(msg or "Không có kết quả")
 
-# /search python
 async def search_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text("Nhập từ khóa!")
@@ -77,48 +80,48 @@ async def search_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(msg or "Không tìm thấy")
 
-# /delete 1
 async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text("Nhập ID cần xoá")
         return
 
-    delete_id = int(context.args[0])
-    data = load_data()
+    try:
+        delete_id = int(context.args[0])
+    except:
+        await update.message.reply_text("ID không hợp lệ")
+        return
 
+    data = load_data()
     new_data = [d for d in data if d["id"] != delete_id]
 
     save_data(new_data)
 
     await update.message.reply_text(f"🗑️ Đã xoá ID {delete_id}")
 
-import os
+# ===== ADD HANDLERS =====
+bot_app.add_handler(CommandHandler("start", start))
+bot_app.add_handler(CommandHandler("save", save_cmd))
+bot_app.add_handler(CommandHandler("list", list_cmd))
+bot_app.add_handler(CommandHandler("search", search_cmd))
+bot_app.add_handler(CommandHandler("delete", delete_cmd))
 
-TOKEN = os.getenv("BOT_TOKEN")
-app = ApplicationBuilder().token(TOKEN).build()
+# ===== WEBHOOK =====
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), bot_app.bot)
+    bot_app.update_queue.put_nowait(update)
+    return "ok"
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("save", save_cmd))
-app.add_handler(CommandHandler("list", list_cmd))
-app.add_handler(CommandHandler("search", search_cmd))
-app.add_handler(CommandHandler("delete", delete_cmd))
+# route test
+@app.route("/")
+def index():
+    return "Bot is running"
 
-print("🔥 Bot PRO đang chạy...")
+# ===== RUN =====
+if __name__ == "__main__":
+    asyncio.run(bot_app.initialize())
+    asyncio.run(bot_app.start())
 
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
-
-class Handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Bot is running")
-
-def run_web():
     port = int(os.environ.get("PORT", 10000))
-    server = HTTPServer(("0.0.0.0", port), Handler)
-    server.serve_forever()
-
-threading.Thread(target=run_web).start()
-
-app.run_polling()
+    print("🔥 Bot webhook đang chạy...")
+    app.run(host="0.0.0.0", port=port)
